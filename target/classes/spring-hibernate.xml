@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+http://www.springframework.org/schema/tx 
+http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
+http://www.springframework.org/schema/aop 
+http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context-3.1.xsd"
+ default-autowire="byName">
+
+	<!-- 引入属性文件,config.properties位于src/main/resources目录下    此段代码与下面一段读取属性文件有相同效果 -->
+	<!-- <context:property-placeholder location="classpath:config.properties" 
+		/> -->
+
+	<!-- 读取属性文件 -->
+	<bean id="propertyConfig"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location">
+			<value>classpath:config.properties</value>
+		</property>
+	</bean>
+
+	<!-- 配置数据源 -->
+	<bean name="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${driverClassName}"/>
+		<property name="url" value="${jdbc_url}" />
+		<property name="username" value="${jdbc_username}" />
+		<property name="password" value="${jdbc_password}" />
+
+		<!--maxActive: 最大连接数量 -->
+		<property name="maxActive" value="150" />
+		<!--minIdle: 最小空闲连接 -->
+		<property name="minIdle" value="5" />
+		<!--maxIdle: 最大空闲连接 -->
+		<property name="maxIdle" value="20" />
+		<!--initialSize: 初始化连接 -->
+		<property name="initialSize" value="30" />
+		<!-- 连接被泄露时是否打印 -->
+		<property name="logAbandoned" value="true" />
+		<!--removeAbandoned: 是否自动回收超时连接 -->
+		<property name="removeAbandoned" value="true" />
+		<!--removeAbandonedTimeout: 超时时间(以秒数为单位) -->
+		<property name="removeAbandonedTimeout" value="5" />
+		<!--maxWait: 超时等待时间以毫秒为单位 1000等于60秒 -->
+		<property name="maxWait" value="500" />
+		<!-- 在空闲连接回收器线程运行期间休眠的时间值,以毫秒为单位. -->
+		<property name="timeBetweenEvictionRunsMillis" value="10000" />
+		<!-- 在每次空闲连接回收器线程(如果有)运行时检查的连接数量 -->
+		<property name="numTestsPerEvictionRun" value="10" />
+		<!-- 1000 * 60 * 30 连接在池中保持空闲而不被空闲连接回收器线程 -->
+		<property name="minEvictableIdleTimeMillis" value="10000" />
+	</bean>
+
+	<!-- 配置hibernate session工厂 -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<!-- 是否打印Hibernate生成的SQL到控制台 -->
+				<prop key="hibernate.show_sql">true</prop>
+				<!-- 是否格式化打印出来的SQL -->
+				<prop key="hibernate.format_sql">true</prop>
+				<!-- 系统使用的数据库方言，也就是使用的数据库类型 -->
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="current_session_context_class">thread</prop>
+				<!-- web项目启动时是否更新表结构 -->
+				<prop key="hibernate.hbm2ddl.auto">true</prop>
+			</props>
+		</property>
+
+		<!-- 指定映射文件的路径，加载资源（该路径下所有配置文件） -->
+		<property name="mappingDirectoryLocations">
+			<value>classpath:com/ece655/entity</value>
+		</property>
+	</bean>
+
+	<!-- 配置文件形式注入bean, 非自动注入，需要set方法 -->
+	<!-- Dao -->
+	<bean id="baseDao" class="com.ece655.daoImpl.BaseDaoImpl" scope="prototype"></bean>
+	<bean id="groupDao" class="com.ece655.daoImpl.GroupDaoImpl" scope="prototype"></bean>
+	<bean id="messageDao" class="com.ece655.daoImpl.MessageDaoImpl" scope="prototype"></bean>
+	<bean id="userJoinDao" class="com.ece655.daoImpl.UserJoinDaoImpl" scope="prototype"></bean>
+	<bean id="userDao" class="com.ece655.daoImpl.UserDaoImpl" scope="prototype"></bean>
+	<!-- service -->
+	<bean id="userService" class="com.ece655.serviceImpl.UserServiceImpl" scope="prototype"></bean>
+	<bean id="groupService" class="com.ece655.serviceImpl.GroupServiceImpl" scope="prototype"></bean>
+	<bean id="messageService" class="com.ece655.serviceImpl.MessageServiceImpl" scope="prototype"></bean>
+	<bean id="userJoinService" class="com.ece655.serviceImpl.UserJoinServiceImpl" scope="prototype"></bean>
+	<!-- action -->
+	<bean id="userAction" class="com.ece655.action.UserAction" scope="prototype"></bean>
+	<bean id="userJoinAction" class="com.ece655.action.UserJoinAction" scope="prototype"></bean>
+	<bean id="groupAction" class="com.ece655.action.GroupAction" scope="prototype"></bean>
+	<bean id="messageAction" class="com.ece655.action.MessageAction" scope="prototype"></bean>
+	<bean id="connectServerAction" class="com.ece655.action.ConnectServerAction" scope="prototype"></bean>
+	
+	
+	
+	<!-- 配置事务管理器 -->
+	<bean name="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+
+	<!-- 定义事务通知 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<!-- 指定事务规则 -->
+		<tx:attributes>
+			<!-- get开头的方法使用support事务规则 -->
+			<tx:method name="get*" propagation="SUPPORTS" />
+			<!-- 其他方法使用support事务规则 -->
+			<tx:method name="*" propagation="REQUIRED"
+				rollback-for="
+		    DataAccessException,IllegalArgumentException"
+				no-rollback-for="NullPointerException,ClassCastException" />
+		</tx:attributes>
+	</tx:advice>
+	<!-- 定义一个切面 组合事务通知和切面 -->
+	<aop:config>
+		<!-- 对业务处于下面的所有类的所有方法有应用事务规则 -->
+		<aop:pointcut expression="execution(* com.ece655.serviceImpl.*.*(..))"
+			id="serviceMethods" />
+		<!-- 组合事务通知和切面 -->
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethods" />
+		
+	</aop:config>
+
+</beans>
